@@ -174,6 +174,12 @@ add_package(TARGET PhysFS
   PREFER_PKGCONFIG)
 add_package(TARGET fmt
   PKG fmt PKG_USE fmt::fmt CONFIG REQUIRED PKG_CONFIG fmt)
+if(DEFINED ENV{DEVKITPRO} AND NOT TARGET glm::glm)
+    message(STATUS "Creating imported target glm::glm for devkitPro")
+    add_library(glm::glm INTERFACE IMPORTED)
+    set_target_properties(glm::glm PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "$ENV{DEVKITPRO}/portlibs/switch/include")
+endif()
 add_package(TARGET glm
   PKG glm PKG_USE glm::glm CONFIG REQUIRED PKG_CONFIG glm)
 add_package(TARGET Freetype
