@@ -32,6 +32,14 @@
 #include "util/reader_mapping.hpp"
 #include "video/drawing_context.hpp"
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846f
+#endif
+
+#ifndef M_PI_2
+#define M_PI_2 (M_PI / 2.0f)
+#endif
+
 Wind::Wind(const ReaderMapping& reader) :
   DraggableRegion(Color(0.0f, 1.0f, 1.0f, 0.6f), reader),
   m_layer(LAYER_BACKGROUNDTILES + 1),

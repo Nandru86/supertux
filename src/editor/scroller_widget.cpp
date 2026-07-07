@@ -24,6 +24,10 @@
 #include "video/video_system.hpp"
 #include "video/viewport.hpp"
 
+#ifndef M_E
+#define M_E 2.71828182845904523536
+#endif
+
 namespace {
 
 const float TOPLEFT = 16;
@@ -126,7 +130,7 @@ EditorScrollerWidget::on_mouse_motion(const SDL_MouseMotionEvent& motion)
     m_scrolling_vec = m_mouse_pos - Vector(MIDDLE, MIDDLE);
     if (m_scrolling_vec.x != 0 || m_scrolling_vec.y != 0) {
       float norm = glm::length(m_scrolling_vec);
-      m_scrolling_vec *= expf(norm / 16.0f - 1.0f);
+      m_scrolling_vec *= powf(static_cast<float>(M_E), norm / 16.0f - 1.0f);
     }
   }
   return false;
