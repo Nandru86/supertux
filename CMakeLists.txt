@@ -485,6 +485,8 @@ if(ANDROID)
   target_compile_definitions(supertux2 PUBLIC -D__ANDROID__ -DANDROID)
 endif()
 
+target_compile_definitions(supertux2 PRIVATE PLATFORM_SWITCH)
+
 ## Install stuff
 include(SuperTux/BuildInstall)
 
@@ -546,5 +548,19 @@ mark_as_advanced(
 mark_as_advanced(
   APPDATADIR
   )
+
+if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
+
+    set(NRO_NAME "supertux2")
+
+    add_custom_command(TARGET supertux2 POST_BUILD
+	COMMAND ${NX_NACPTOOL_EXE} --create "SuperTux" "Nandru85" "${PROJECT_VERSION}" ${CMAKE_CURRENT_BINARY_DIR}/${NRO_NAME}.nacp
+
+	COMMAND ${NX_ELF2NRO_EXE} $<TARGET_FILE:supertux2> ${CMAKE_CURRENT_BINARY_DIR}/${NRO_NAME}.nro --nacp=${CMAKE_CURRENT_BINARY_DIR}/${NRO_NAME}.nacp --icon=${CMAKE_CURRENT_BINARY_DIR}/supertux2.jpg
+
+	COMMENT "Generando NRO de Nintendo Switch"
+    )
+
+endif()
 
 # EOF #

@@ -296,7 +296,7 @@ void open_path(const std::string& path)
 void
 open_editor(const std::string& filename)
 {
-#if !defined(ANDROID) && !defined(EMSCRIPTEN)
+#if !defined(ANDROID) && !defined(EMSCRIPTEN) && !defined(PLATFORM_SWITCH)
   std::string editor =
 #ifdef WIN32
     "notepad.exe"; // *shrugs*
