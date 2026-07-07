@@ -26,6 +26,8 @@
 #include <sstream>
 #include <string>
 #include <cstring>
+#include <cxxabi.h>
+
 
 #include <SDL.h>
 
