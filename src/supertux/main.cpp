@@ -91,6 +91,16 @@ extern "C" {
 
 static Timelog s_timelog;
 
+static std::string
+normalize_path(const std::string& path)
+{
+#ifdef __SWITCH__
+  return path;
+#else
+  return std::filesystem::canonical(path).string();
+#endif
+}
+
 ConfigSubsystem::ConfigSubsystem() :
   m_config()
 {
@@ -241,12 +251,16 @@ void PhysfsSubsystem::find_mount_datadir()
     {
       // if the game is not run from the source directory, try to find
       // the global install location
-      m_datadir = basepath.substr(0, basepath.rfind(INSTALL_SUBDIR_BIN));
-      m_datadir = FileSystem::join(m_datadir, INSTALL_SUBDIR_SHARE);
+#ifdef __SWITCH__
+	m_datadir = "sdmc:/switch/supertux2/data";
+#else
+	m_datadir = basepath.substr(0, basepath.rfind(INSTALL_SUBDIR_BIN));
+	m_datadir = FileSystem::join(m_datadir, INSTALL_SUBDIR_SHARE);
+#endif
     }
   }
 
-  if (!PHYSFS_mount(std::filesystem::canonical(m_datadir).string().c_str(), nullptr, 1))
+  if (!PHYSFS_mount(normalize_path(m_datadir).c_str(), nullptr, 1))
   {
     log_warning << "Couldn't add '" << m_datadir << "' to PhysFS searchpath: " << physfsutil::get_last_error() << std::endl;
   }
@@ -280,7 +294,7 @@ void PhysfsSubsystem::remount_datadir_static() const
 void PhysfsSubsystem::add_data_to_search_path(const std::string& dir) const
 {
 #ifndef __EMSCRIPTEN__
-  if (!PHYSFS_mount(FileSystem::join(std::filesystem::canonical(m_datadir).string(), dir).c_str(), dir.c_str(), 0))
+  if (!PHYSFS_mount(FileSystem::join(normalize_path(m_datadir), dir).c_str(), dir.c_str(), 0))
   {
     log_warning << "Couldn't add '" << m_datadir << "/" << dir << "' to PhysFS searchpath: " << physfsutil::get_last_error() << std::endl;
   }

@@ -72,10 +72,14 @@ include(CheckSymbolExists)
 include(SuperTux/BuildVersion)
 
 ## For autopackage
-set(APPDATADIR "${CMAKE_INSTALL_PREFIX}/share/games/supertux2")
+#set(APPDATADIR "${CMAKE_INSTALL_PREFIX}/share/games/supertux2")
 
 set(BUILD_DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/data")
 set(BUILD_CONFIG_DATA_DIR "${CMAKE_BINARY_DIR}/data")
+
+#if(DEFINED ENV{DEVKITPRO})
+  set(APPDATADIR "sdmc:/switch/supertux2/data")
+#endif()
 
 ## Options for install
 if(WIN32 AND NOT UNIX)
@@ -89,7 +93,8 @@ else()
     set(INSTALL_SUBDIR_DOC "SuperTux.app/Contents/Resources" CACHE STRING "Installation subdir for docs")
   else()
     set(INSTALL_SUBDIR_BIN "games" CACHE STRING "Installation subdir for binaries")
-    set(INSTALL_SUBDIR_SHARE "share/games/supertux2" CACHE STRING "Installation subdir for data")
+    #set(INSTALL_SUBDIR_SHARE "share/games/supertux2" CACHE STRING "Installation subdir for data")
+    set(INSTALL_SUBDIR_SHARE "sdmc:/switch/supertux2" CACHE STRING "Installation subdir for data")
     set(INSTALL_SUBDIR_DOC "share/doc/supertux2" CACHE STRING "Installation subdir for docs")
   endif()
 endif()
@@ -556,7 +561,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
     add_custom_command(TARGET supertux2 POST_BUILD
 	COMMAND ${NX_NACPTOOL_EXE} --create "SuperTux" "Nandru85" "${PROJECT_VERSION}" ${CMAKE_CURRENT_BINARY_DIR}/${NRO_NAME}.nacp
 
-	COMMAND ${NX_ELF2NRO_EXE} $<TARGET_FILE:supertux2> ${CMAKE_CURRENT_BINARY_DIR}/${NRO_NAME}.nro --nacp=${CMAKE_CURRENT_BINARY_DIR}/${NRO_NAME}.nacp --icon=${CMAKE_CURRENT_BINARY_DIR}/supertux2.jpg
+	COMMAND ${NX_ELF2NRO_EXE} $<TARGET_FILE:supertux2> ${CMAKE_CURRENT_BINARY_DIR}/${NRO_NAME}.nro --nacp=${CMAKE_CURRENT_BINARY_DIR}/${NRO_NAME}.nacp --icon=${PROJECT_SOURCE_DIR}/supertux2.jpg
 
 	COMMENT "Generando NRO de Nintendo Switch"
     )
