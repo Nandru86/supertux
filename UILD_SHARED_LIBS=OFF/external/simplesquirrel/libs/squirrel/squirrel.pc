@@ -1,0 +1,12 @@
+prefix=/opt/devkitpro/portlibs/switch
+libdir=/opt/devkitpro/portlibs/switch/lib
+includedir=/opt/devkitpro/portlibs/switch/include
+
+Name: squirrel
+Version: 3.2
+Description: The Squirrel programming language
+URL: http://squirrel-lang.org/
+Requires:
+Provides: squirrel3 = 3.2
+Libs: -L${libdir} -lsquirrel -lsqstdlib
+Cflags: -I${includedir}

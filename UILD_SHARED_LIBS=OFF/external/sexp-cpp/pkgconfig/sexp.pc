@@ -1,0 +1,8 @@
+prefix=/opt/devkitpro/portlibs/switch
+libdir=/opt/devkitpro/portlibs/switch/lib
+includedir=/opt/devkitpro/portlibs/switch/include/sexp
+
+Name: sexp
+Version: 
+Libs: -L${libdir} -lsexp
+Cflags: -I${includedir}
