@@ -99,7 +99,20 @@ In case you need help, feel free to reach out using the following means:
 ## Compiling for Nintendo switch:
 Install DevKitPro with switch and arm64 support. also, install these extra libs:
 
-switch-libogg switch-libvorbis switch-openal-soft switch-freetype switch-harfbuzz switch-curl switch-libfribidi switch-glm switch-zlib switch-physfs
+`switch-libogg switch-libvorbis switch-openal-soft switch-freetype switch-harfbuzz switch-curl switch-libfribidi switch-glm switch-zlib switch-physfs switch-sdl2_image`
+
+you also need to download, compile and install fmtlib onto devkitpro:
+
+download release 12.2.0 from https://github.com/fmtlib/fmt/releases/tag/12.2.0
+unzip, cd into it, create build directory and cd into it:
+```
+unzip fmt-12.2.0.zip
+cd fmt-12.2.0/
+cmake .. -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/Switch.cmake -DPKG_CONFIG_EXECUTABLE=$DEVKITPRO/portlibs/switch/bin/aarch64-none-elf-pkg-config -DCMAKE_INSTALL_PREFIX=$DEVKITPRO/portlibs/switch -DFMT_TEST=false
+make
+cmake --install .
+sudo cmake --install .
+```
 
 Modify line 40 of `external/simplesquirrel/CMakeLists.txt`, replacing `SHARED` with `STATIC`. Then use this cmake:
 `cmake .. \
