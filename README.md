@@ -97,6 +97,9 @@ In case you need help, feel free to reach out using the following means:
 * **Discord:** Also, you can join our [Discord server](https://discord.com/invite/AcvtHWz) to get in touch with us.
 
 ## Compiling for Nintendo switch:
+Install DevKitPro with switch and arm64 support. also, install these extra libs:
+
+switch-libogg switch-libvorbis switch-openal-soft switch-freetype switch-harfbuzz switch-curl switch-libfribidi switch-glm switch-zlib switch-physfs
 
 Modify line 40 of `external/simplesquirrel/CMakeLists.txt`, replacing `SHARED` with `STATIC`. Then use this cmake:
 `cmake .. \
@@ -106,3 +109,5 @@ Modify line 40 of `external/simplesquirrel/CMakeLists.txt`, replacing `SHARED` w
   -DUSE_STATIC_SIMPLESQUIRREL=ON \
   -DSQ_DISABLE_INSTALLER=ON \
   -DENABLE_OPENGL=OFF`
+
+
