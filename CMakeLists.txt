@@ -556,7 +556,7 @@ mark_as_advanced(
 
 if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
 
-    set(PROJECT_VERSION "0.1")
+    set(PROJECT_VERSION "0.1.1")
 
     set(NRO_NAME "supertux2")
 

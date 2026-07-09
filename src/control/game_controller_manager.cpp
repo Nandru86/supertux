@@ -211,6 +211,12 @@ GameControllerManager::on_controller_added(int joystick_index)
   Savegame* savegame = (GameSession::current() && !Editor::is_active() ?
     &GameSession::current()->get_savegame() : nullptr);
 
+#ifdef __SWITCH__
+  // Si ya tenemos un control en el mapa, ignoramos cualquier otro fantasma
+  if (!m_game_controllers.empty())
+      return;
+#endif
+
   if (!SDL_IsGameController(joystick_index))
   {
     log_warning << "joystick is not a game controller, ignoring: " << joystick_index << std::endl;
@@ -301,6 +307,11 @@ GameControllerManager::on_player_removed(int player_id)
 bool
 GameControllerManager::has_corresponding_game_controller(int player_id) const
 {
+#ifdef __SWITCH__
+  if (player_id > 0) 
+      return false;
+#endif
+
   return std::find_if(m_game_controllers.begin(), m_game_controllers.end(), [player_id](decltype(m_game_controllers)::const_reference pair) {
     return pair.second == player_id;
   }) != m_game_controllers.end();

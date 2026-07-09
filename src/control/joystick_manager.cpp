@@ -55,6 +55,11 @@ JoystickManager::on_joystick_added(int joystick_index)
 {
   log_debug << "on_joystick_added(): " << joystick_index << std::endl;
 
+#ifdef __SWITCH__
+  if (!joysticks.empty()) 
+      return;
+#endif
+
   if (!parent->can_add_user())
     return;
 

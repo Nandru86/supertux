@@ -51,7 +51,15 @@ public:
   void on_joystick_added(int joystick_index);
   void on_joystick_removed(int instance_id);
 
-  inline int get_num_joysticks() const { return static_cast<int>(joysticks.size()); }
+  //inline int get_num_joysticks() const { return static_cast<int>(joysticks.size()); }
+  inline int get_num_joysticks() const {
+#ifdef __SWITCH__
+    // Si hay al menos un control en el mapa, devolvemos 1. Si no hay ninguno, 0.
+    return joysticks.empty() ? 0 : 1;
+#else
+    return static_cast<int>(joysticks.size());
+#endif
+  }
 
   void on_player_removed(int player_id);
   bool has_corresponding_joystick(int player_id) const;
