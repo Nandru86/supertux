@@ -556,14 +556,15 @@ mark_as_advanced(
 
 if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
 
+    set(PROJECT_VERSION "0.1")
+
     set(NRO_NAME "supertux2")
 
-    add_custom_command(TARGET supertux2 POST_BUILD
-	COMMAND ${NX_NACPTOOL_EXE} --create "SuperTux" "Nandru85" "${PROJECT_VERSION}" ${CMAKE_CURRENT_BINARY_DIR}/${NRO_NAME}.nacp
+    add_custom_command(TARGET supertux2 POST_BUILD 
+	    COMMAND ${NX_NACPTOOL_EXE} --create "SuperTux 2" "SuperTux Team, Nandru85" "${PROJECT_VERSION}" ${CMAKE_CURRENT_BINARY_DIR}/${NRO_NAME}.nacp
 
-	COMMAND ${NX_ELF2NRO_EXE} $<TARGET_FILE:supertux2> ${CMAKE_CURRENT_BINARY_DIR}/${NRO_NAME}.nro --nacp=${CMAKE_CURRENT_BINARY_DIR}/${NRO_NAME}.nacp --icon=${PROJECT_SOURCE_DIR}/supertux2.jpg
-
-	COMMENT "Generando NRO de Nintendo Switch"
+	    COMMAND ${NX_ELF2NRO_EXE} $<TARGET_FILE:supertux2> ${CMAKE_CURRENT_BINARY_DIR}/${NRO_NAME}.nro --nacp=${CMAKE_CURRENT_BINARY_DIR}/${NRO_NAME}.nacp --icon=${PROJECT_SOURCE_DIR}/supertux2.jpg
+	    COMMENT "Generando NRO de Nintendo Switch"
     )
 
 endif()
