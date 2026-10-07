@@ -1,4 +1,4 @@
-#include "video/sdl/debug_log.hpp"
+#include "util/debug_log.hpp"
 
 #include <cstdio>
 #include <cstdarg>

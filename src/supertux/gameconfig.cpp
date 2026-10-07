@@ -52,7 +52,15 @@ Config::Config() :
 #else
   use_fullscreen(false),
 #endif
+  #ifdef PLATFORM_SWITCH
+  // The Switch has no desktop GL and no windowed mode worth defaulting to, and
+  // the SDL backend there is a pure software rasteriser. Default to the OpenGL
+  // auto path so a freshly generated config exercises GLAD; it still degrades
+  // to SDL if no 3.3 core context can be created.
+  video(VideoSystem::VIDEO_OPENGL_AUTO),
+#else
   video(VideoSystem::VIDEO_SDL),
+#endif
   vsync(1),
   frame_prediction(false),
   show_fps(false),

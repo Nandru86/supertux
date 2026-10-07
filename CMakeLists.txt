@@ -246,13 +246,24 @@ if(ENABLE_DISCORD)
   add_subdirectory(external/discord-sdk EXCLUDE_FROM_ALL)
 endif()
 
-set(USE_GL_LIBRARY "glew" CACHE STRING "Which OpenGL function library to choose from (e.g. glew, libepoxy)")
-set_property(CACHE USE_GL_LIBRARY PROPERTY STRINGS glew libepoxy)
+if(CMAKE_SYSTEM_NAME STREQUAL "NintendoSwitch")
+  # GLEW and libepoxy are not available for the Switch in devkitPro, but GLAD is
+  # (switch-glad). Force it there: any other choice can only fail, including one
+  # inherited from the cache of an older build directory.
+  if(NOT USE_GL_LIBRARY STREQUAL "glad")
+    message(STATUS "Nintendo Switch target: forcing USE_GL_LIBRARY=glad instead of \"${USE_GL_LIBRARY}\"")
+  endif()
+  set(USE_GL_LIBRARY "glad" CACHE STRING "Which OpenGL function library to choose from (e.g. glad, glew, libepoxy)" FORCE)
+else()
+  set(USE_GL_LIBRARY "glew" CACHE STRING "Which OpenGL function library to choose from (e.g. glad, glew, libepoxy)")
+endif()
+set_property(CACHE USE_GL_LIBRARY PROPERTY STRINGS glad glew libepoxy)
 
 set(HAVE_OPENGL NO)
 set(HAVE_CURL NO)
 set(HAVE_GLEW NO)
 set(HAVE_EPOXY NO)
+set(HAVE_GLAD NO)
 if(NOT ENABLE_OPENGL)
   message(STATUS "OpenGL support is disabled, as requested.")
 elseif(ANDROID)
@@ -264,7 +275,37 @@ elseif(NOT EMSCRIPTEN)
   find_package(OpenGL QUIET)
 
   if(OPENGL_FOUND)
-    if (USE_GL_LIBRARY STREQUAL "glew")
+    if (USE_GL_LIBRARY STREQUAL "glad")
+      message(STATUS "Using glad")
+      # devkitPro's libglad.pc spells its prefix as the make variable
+      # $(DEVKITPRO) rather than the literal path every other portlib uses, so
+      # pkg-config hands back an include directory that does not exist. Look the
+      # loader up in the devkitPro portlibs directly in that case, and only fall
+      # back to pkg-config on the other platforms.
+      if(DEFINED ENV{DEVKITPRO})
+        find_path(SUPERTUX_GLAD_INCLUDE_DIR NAMES glad/glad.h
+          HINTS "$ENV{DEVKITPRO}/portlibs/switch/include")
+        find_library(SUPERTUX_GLAD_LIBRARY NAMES glad
+          HINTS "$ENV{DEVKITPRO}/portlibs/switch/lib")
+      endif()
+
+      if(SUPERTUX_GLAD_INCLUDE_DIR AND SUPERTUX_GLAD_LIBRARY)
+        add_library(glad UNKNOWN IMPORTED GLOBAL)
+        set_target_properties(glad PROPERTIES
+          IMPORTED_LOCATION "${SUPERTUX_GLAD_LIBRARY}"
+          INTERFACE_INCLUDE_DIRECTORIES "${SUPERTUX_GLAD_INCLUDE_DIR}")
+        set(HAVE_OPENGL ON)
+        set(HAVE_GLAD ON)
+      else()
+        add_package(TARGET glad
+          PKG glad PKG_CONFIG libglad
+          PREFER_PKGCONFIG)
+        set(HAVE_OPENGL "${ADDPKG_glad_FOUND}")
+        if(HAVE_OPENGL)
+          set(HAVE_GLAD ON)
+        endif()
+      endif()
+    elseif (USE_GL_LIBRARY STREQUAL "glew")
       message(STATUS "Using glew")
       add_package(TARGET GLEW
         PKG GLEW PKG_USE GLEW::GLEW CONFIG REQUIRED PKG_CONFIG glew
@@ -307,6 +348,15 @@ if(HAVE_OPENGL)
   message(STATUS "Adding OpenGL sources")
   file(GLOB SUPERTUX_OPENGL_SOURCES_CXX RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/video/gl/*.cpp)
   file(GLOB SUPERTUX_OPENGL_SOURCES_HXX RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} src/video/gl/*.hpp)
+  if(HAVE_GLAD)
+    # The glad we build against is generated for a core profile, which has no
+    # fixed function entry points (glMatrixMode, glOrtho,
+    # glEnableClientState, glVertexPointer, ...) that GL20Context is built on.
+    # GLVideoSystem always selects GL33CoreContext when using glad, so drop the
+    # translation unit instead of forcing every build of glad to also ship a
+    # compatibility profile.
+    list(REMOVE_ITEM SUPERTUX_OPENGL_SOURCES_CXX src/video/gl/gl20_context.cpp)
+  endif()
   set(SUPERTUX_SOURCES_CXX ${SUPERTUX_SOURCES_CXX} ${SUPERTUX_OPENGL_SOURCES_CXX})
   set(SUPERTUX_SOURCES_HXX ${SUPERTUX_SOURCES_HXX} ${SUPERTUX_OPENGL_SOURCES_HXX})
 endif()
@@ -473,7 +523,9 @@ if(NOT EMSCRIPTEN)
 
   if(HAVE_OPENGL AND NOT ANDROID)
     target_link_libraries(supertux2 PUBLIC OpenGL::GL)
-    if(USE_GL_LIBRARY STREQUAL "glew")
+    if(USE_GL_LIBRARY STREQUAL "glad")
+      target_link_libraries(supertux2 PUBLIC glad)
+    elseif(USE_GL_LIBRARY STREQUAL "glew")
       target_link_libraries(supertux2 PUBLIC GLEW)
     else()
       target_link_libraries(supertux2 PUBLIC libepoxy)

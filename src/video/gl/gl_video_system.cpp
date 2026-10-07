@@ -16,6 +16,9 @@
 
 #include "video/gl/gl_video_system.hpp"
 
+#include <cstdio>
+#include <cstring>
+
 #include "math/rect.hpp"
 #include "supertux/gameconfig.hpp"
 #include "supertux/globals.hpp"
@@ -83,6 +86,13 @@ GLVideoSystem::GLVideoSystem(bool use_opengl33core, bool auto_opengl_version) :
   m_glcontext(),
   m_viewport()
 {
+#if defined(HAVE_GLAD)
+  // The glad we build against is generated for a core profile, so none of the
+  // fixed function entry points GL20Context relies on exist. Force the OpenGL
+  // 3.3 core path before the window attributes get set in create_gl_window().
+  m_use_opengl33core = true;
+#endif
+
   create_gl_window();
 
   assert_gl();
@@ -93,6 +103,11 @@ GLVideoSystem::GLVideoSystem(bool use_opengl33core, bool auto_opengl_version) :
 #elif defined(USE_OPENGLES1)
   m_context.reset(new GL20Context);
   m_use_opengl33core = false;
+#elif defined(HAVE_GLAD)
+  // Already forced to true above. Skip the auto detection below: its sscanf()
+  // expects the version string to start with a number, which does not hold for
+  // every driver Mesa reports itself as (e.g. "OpenGL ES-CM 1.1 ...").
+  m_context.reset(new GL33CoreContext(*this));
 #else
   if (auto_opengl_version)
   {
@@ -207,7 +222,9 @@ GLVideoSystem::create_gl_window()
   }
 #endif
 
+  fprintf(stderr, "[gl] create_sdl_window(SDL_WINDOW_OPENGL) begin\n"); fflush(stderr);
   create_sdl_window(SDL_WINDOW_OPENGL);
+  fprintf(stderr, "[gl] create_sdl_window OK\n"); fflush(stderr);
 #ifdef WIN32 // See comment near top of file
   if (g_config->use_fullscreen)
   {
@@ -218,13 +235,59 @@ GLVideoSystem::create_gl_window()
   SDL_SetWindowSize(m_sdl_window.get(), get_window_size().width + 1, get_window_size().height);
   WORST_FUCKING_HACK_IN_THIS_CODEBASE = true;
 #endif
+  fprintf(stderr, "[gl] calling create_gl_context()\n"); fflush(stderr);
   create_gl_context();
 }
 
 void
 GLVideoSystem::create_gl_context()
 {
+  fprintf(stderr, "[gl] SDL_GL_CreateContext begin\n"); fflush(stderr);
   m_glcontext = SDL_GL_CreateContext(m_sdl_window.get());
+  fprintf(stderr, "[gl] SDL_GL_CreateContext returned %p, SDL_GetError=\"%s\"\n",
+          static_cast<void*>(m_glcontext), SDL_GetError() ? SDL_GetError() : "(none)");
+  fflush(stderr);
+
+  // A null context used to be passed straight to assert_gl(), which then issued
+  // a GL call with no current context and took the process down with an
+  // unreadable SIGSEGV. Report it instead so VideoSystem::create() can fall back.
+  if (!m_glcontext)
+  {
+    std::ostringstream out;
+    out << "GLVideoSystem: SDL_GL_CreateContext failed: "
+        << (SDL_GetError() && *SDL_GetError() ? SDL_GetError() : "no error reported by SDL");
+    throw std::runtime_error(out.str());
+  }
+
+  #if defined(HAVE_GLAD)
+  // NOTE: glad.h turns every GL entry point into a function pointer that stays
+  // NULL until the loader has run, so no GL call at all may happen before this
+  // point -- not even assert_gl(), which would jump through a null
+  // glad_glGetError and crash. Load GLAD first, then run the checks below.
+  // Prefer SDL's wrapper, which resolves entry points the same way the rest of
+  // the platform does. gladLoadGL() hardcodes eglGetProcAddress on the Switch,
+  // so keep it as a fallback in case SDL's proc address lookup comes up empty.
+  fprintf(stderr, "[gl] gladLoadGLLoader(SDL_GL_GetProcAddress) begin\n"); fflush(stderr);
+  int glad_err = gladLoadGLLoader(reinterpret_cast<GLADloadproc>(SDL_GL_GetProcAddress));
+  fprintf(stderr, "[gl] gladLoadGLLoader returned %d\n", glad_err); fflush(stderr);
+  if (!glad_err)
+  {
+    log_warning << "gladLoadGLLoader(SDL_GL_GetProcAddress) failed, retrying with gladLoadGL()" << std::endl;
+    fprintf(stderr, "[gl] retrying with gladLoadGL()\n"); fflush(stderr);
+    glad_err = gladLoadGL();
+    fprintf(stderr, "[gl] gladLoadGL returned %d\n", glad_err); fflush(stderr);
+  }
+
+  if (!glad_err)
+  {
+    std::ostringstream out;
+    out << "GLVideoSystem: glad could not load the OpenGL entry points";
+    throw std::runtime_error(out.str());
+  }
+
+  // Eat up any error code the loader may have left behind before asserting.
+  glGetError();
+#endif
 
   assert_gl();
   set_vsync(g_config->vsync);
@@ -265,6 +328,71 @@ GLVideoSystem::create_gl_context()
   static auto extensions = glbinding::ContextInfo::extensions();
   log_info << "Using glbinding" << std::endl;
   log_info << "ARB_texture_non_power_of_two: " << static_cast<int>(extensions.find(GLextension::GL_ARB_texture_non_power_of_two) != extensions.end()) << std::endl;
+#elif defined(HAVE_GLAD)
+  // The loader itself already ran above, before the first GL call.
+  const char* version_string = reinterpret_cast<const char*>(glGetString(GL_VERSION));
+  const char* renderer_string = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
+
+  // Written straight to stderr: by the time a GLVideoSystem is constructed,
+  // Main::launch_game() has already installed a ConsoleBuffer, which diverts
+  // log_info/log_warning into an in-memory stream that never reaches nxlink.
+  fprintf(stderr, "[glad] GL_VERSION  = %s\n",
+          version_string ? version_string : "(null)");
+  fprintf(stderr, "[glad] GL_RENDERER = %s\n",
+          renderer_string ? renderer_string : "(null)");
+  fprintf(stderr, "[glad] parsed      = %d.%d, GLAD_GL_VERSION_3_3=%d\n",
+          GLVersion.major, GLVersion.minor, static_cast<int>(GLAD_GL_VERSION_3_3));
+  fflush(stderr);
+
+  // glad leaves every entry point it could not resolve as a null pointer, and
+  // GL33CoreContext calls straight through them. If the driver handed back less
+  // than a 3.3 core context (devkitPro's Mesa can report "OpenGL ES-CM 1.1 ..."
+  // even when a core profile is requested) bail out with a readable message
+  // instead of jumping through a null pointer. VideoSystem::create() catches this
+  // and falls back to the SDL renderer.
+  if (!glad_glCreateShader || !glad_glGenVertexArrays ||
+      !glad_glBindVertexArray || !glad_glBindFramebuffer ||
+      !glad_glActiveTexture)
+  {
+    std::ostringstream out;
+    out << "GLVideoSystem: glad needs an OpenGL 3.3 core context, but got \""
+        << (version_string ? version_string : "(unknown)")
+        << "\" (renderer \"" << (renderer_string ? renderer_string : "(unknown)") << "\")";
+    throw std::runtime_error(out.str());
+  }
+
+  fprintf(stderr, "[glad] core 3.3 entry points resolved, using GL33CoreContext\n");
+  fflush(stderr);
+
+  // Report what this driver can actually do, so the texture-memory ceiling can
+  // be reasoned about from data rather than guessed at.
+  {
+    const char* vendor = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
+    GLint max_tex = 0, max_units = 0;
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_tex);
+    glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &max_units);
+    fprintf(stderr, "[glad] GL_VENDOR=%s MAX_TEXTURE_SIZE=%d MAX_TEXTURE_IMAGE_UNITS=%d\n",
+            vendor ? vendor : "(null)", static_cast<int>(max_tex),
+            static_cast<int>(max_units));
+    fflush(stderr);
+
+    GLint num_ext = 0;
+    glGetIntegerv(GL_NUM_EXTENSIONS, &num_ext);
+    bool have_s3tc = false, have_rgtc = false, have_bptc = false;
+    for (GLint i = 0; i < num_ext; ++i)
+    {
+      const char* ext = reinterpret_cast<const char*>(
+        glGetStringi(GL_EXTENSIONS, static_cast<GLuint>(i)));
+      if (!ext) continue;
+      if (strcmp(ext, "GL_EXT_texture_compression_s3tc") == 0) have_s3tc = true;
+      if (strcmp(ext, "GL_AMD_texture_compression_rgtc") == 0) have_rgtc = true;
+      if (strcmp(ext, "GL_ARB_texture_compression_bptc") == 0) have_bptc = true;
+    }
+    fprintf(stderr, "[glad] extensions=%d s3tc=%d rgtc=%d bptc=%d\n",
+            static_cast<int>(num_ext), have_s3tc, have_rgtc, have_bptc);
+    fflush(stderr);
+
+  }
 #else // Glew
   GLenum err = glewInit();
 #  ifdef GLEW_ERROR_NO_GLX_DISPLAY

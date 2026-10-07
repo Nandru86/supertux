@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <optional>
 
 #include "video/color.hpp"
@@ -54,6 +55,7 @@ private:
 
 private:
   GLuint m_handle;
+  uint64_t m_live_bytes = 0;
   int m_texture_width;
   int m_texture_height;
   int m_image_width;

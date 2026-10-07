@@ -17,6 +17,7 @@
 #include "video/video_system.hpp"
 
 #include <assert.h>
+#include <cstdio>
 #include <optional>
 #include <config.h>
 #include <iomanip>
@@ -59,11 +60,25 @@ VideoSystem::create(VideoSystem::Enum video_system)
 #else
       try
       {
-        return std::make_unique<GLVideoSystem>(true, true);
+        // NOTE: This runs after Main::launch_game() has installed a ConsoleBuffer,
+        // so log_info/log_warning end up in that in-memory buffer and never reach
+        // stderr. On the Switch nxlink stdout is the only diagnostic channel we
+        // have, so write these unconditionally.
+        fprintf(stderr, "[video] trying GLVideoSystem (auto)\n");
+        fflush(stderr);
+
+        auto video_system = std::make_unique<GLVideoSystem>(true, true);
+
+        fprintf(stderr, "[video] GLVideoSystem created -> %s\n",
+                video_system->get_name().c_str());
+        fflush(stderr);
+        return video_system;
       }
       catch(std::exception& err2)
       {
-        log_warning << "Error creating GLVideoSystem, using SDL fallback: "  << err2.what() << std::endl;
+        fprintf(stderr, "[video] GLVideoSystem failed (%s), using SDL fallback\n",
+                err2.what());
+        fflush(stderr);
         return std::make_unique<SDLVideoSystem>();
       }
 #endif

@@ -99,7 +99,11 @@ In case you need help, feel free to reach out using the following means:
 ## Compiling for Nintendo switch:
 Install DevKitPro with switch and arm64 support. also, install these extra libs:
 
-`switch-libogg switch-libvorbis switch-openal-soft switch-freetype switch-harfbuzz switch-curl switch-libfribidi switch-glm switch-zlib switch-physfs switch-sdl2_image`
+`switch-libogg switch-libvorbis switch-openal-soft switch-freetype switch-harfbuzz switch-curl switch-libfribidi switch-glm switch-zlib switch-physfs switch-sdl2_image switch-glad`
+
+`switch-glad` provides the OpenGL loader for the Switch: GLEW and libepoxy are not
+available there. It is generated for a core profile, so the build always runs the
+OpenGL 3.3 core code path.
 
 you also need to download, compile and install fmtlib onto devkitpro:
 
@@ -121,6 +125,6 @@ Modify line 40 of `external/simplesquirrel/CMakeLists.txt`, replacing `SHARED` w
   -DHIDE_NONMOBILE_OPTIONS=ON \
   -DUSE_STATIC_SIMPLESQUIRREL=ON \
   -DSQ_DISABLE_INSTALLER=ON \
-  -DENABLE_OPENGL=OFF`
+  -DENABLE_OPENGL=ON`
 
 

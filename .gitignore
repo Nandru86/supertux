@@ -101,3 +101,5 @@ ehthumbs.db
 Thumbs.db
 .directory
 *~
+*.md
+*.log

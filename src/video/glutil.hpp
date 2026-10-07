@@ -72,6 +72,12 @@ inline bool gl_needs_power_of_two()
 {
 #if defined(USE_OPENGLES2) || defined(USE_OPENGLES1) || defined(HAVE_EPOXY)
   return true;
+#elif defined(HAVE_GLAD)
+  // glad exposes no extension flags, only per version ones. Non-power-of-two
+  // textures are unconditionally part of core OpenGL since 2.0 (the behaviour
+  // ARB_texture_non_power_of_two used to gate in GLEW), so ask glad for the
+  // lowest version we can possibly be running.
+  return !GLAD_GL_VERSION_2_0;
 #else
   return !GLEW_ARB_texture_non_power_of_two;
 #endif

@@ -20,6 +20,7 @@
 #cmakedefine HAVE_OPENGL
 #cmakedefine HAVE_GLEW
 #cmakedefine HAVE_EPOXY
+#cmakedefine HAVE_GLAD
 #cmakedefine USE_OPENGLES2
 #cmakedefine USE_OPENGLES1
 #cmakedefine FLATPAK

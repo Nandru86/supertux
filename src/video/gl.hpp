@@ -27,6 +27,9 @@
 #elif defined(HAVE_EPOXY)
 #  include <epoxy/gl.h>
 #  define GL_NONE_BIT 0
+#elif defined(HAVE_GLAD)
+#  include <glad/glad.h>
+#  define GL_NONE_BIT 0
 #else
 #  include <GL/glew.h>
 #  define GL_NONE_BIT 0

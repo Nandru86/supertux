@@ -17,6 +17,8 @@
 #include <SDL.h>
 
 #include <config.h>
+#include <cstdio>
+#include <cstdlib>
 #include <memory>
 
 #include "supertux/main.hpp"
@@ -27,11 +29,19 @@ static std::unique_ptr<Main> g_main;
 
 int main(int argc, char** argv)
 {
+  fprintf(stderr, "[main] entry, argc=%d\n", argc);
+  fflush(stderr);
   socketInitializeDefault();
   nxlinkStdio();
+  fprintf(stderr, "[main] nxlink ready, constructing Main\n");
+  fflush(stderr);
   g_main = std::make_unique<Main>();
+  fprintf(stderr, "[main] Main constructed, calling run()\n");
+  fflush(stderr);
 
   int ret = g_main->run(argc, argv);
+  fprintf(stderr, "[main] run() returned %d\n", ret);
+  fflush(stderr);
 
 #if !defined(__EMSCRIPTEN__)
   // Manually destroy, as atexit() functions are called before global

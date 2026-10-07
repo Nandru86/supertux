@@ -592,7 +592,9 @@ Main::launch_game(const CommandLineArguments& args)
   m_physfs_subsystem->remount_datadir_static();
 
   m_sdl_subsystem.reset(new SDLSubsystem());
+  fprintf(stderr, "[launch] SDLSubsystem OK\n"); fflush(stderr);
   m_console_buffer.reset(new ConsoleBuffer());
+  fprintf(stderr, "[launch] ConsoleBuffer OK (logs now diverted in-memory)\n"); fflush(stderr);
 #ifdef ENABLE_TOUCHSCREEN_SUPPORT
   if (getenv("ANDROID_TV")) {
     g_config->mobile_controls = false;
@@ -614,6 +616,14 @@ Main::launch_game(const CommandLineArguments& args)
     }
   }
   s_timelog.log("video");
+  fprintf(stderr, "[launch] creating video system, video=%d "
+          "(SDL=%d OPENGL_AUTO=%d OPENGL33CORE=%d NULL=%d)\n",
+          static_cast<int>(video),
+          static_cast<int>(VideoSystem::VIDEO_SDL),
+          static_cast<int>(VideoSystem::VIDEO_OPENGL_AUTO),
+          static_cast<int>(VideoSystem::VIDEO_OPENGL33CORE),
+          static_cast<int>(VideoSystem::VIDEO_NULL));
+  fflush(stderr);
 
   m_video_system = VideoSystem::create(video);
 #else
@@ -797,6 +807,15 @@ Main::run(int argc, char** argv)
       args.parse_args(argc, argv);
       g_log_level = args.get_log_level();
       g_log_tinygettext = args.log_tinygettext;
+#ifdef PLATFORM_SWITCH
+      // nxlink stdout is the only diagnostic channel on the Switch, and up to
+      // the point where ConsoleBuffer is installed these log lines land on
+      // stderr. Force verbose logging so the init sequence is observable.
+      g_log_level = LOG_INFO;
+#endif
+      fprintf(stderr, "[run] args parsed, log_level=%d (DEBUG=%d)\n",
+              static_cast<int>(g_log_level), static_cast<int>(LOG_DEBUG));
+      fflush(stderr);
     }
     catch(const std::exception& err)
     {
@@ -810,13 +829,19 @@ Main::run(int argc, char** argv)
     m_physfs_subsystem.reset(new PhysfsSubsystem(nullptr, args.datadir, args.userdir));
 #endif
     m_physfs_subsystem->print_search_path();
+    fprintf(stderr, "[run] PhysfsSubsystem + search path OK\n"); fflush(stderr);
 
     s_timelog.log("config");
     m_config_subsystem.reset(new ConfigSubsystem());
+    fprintf(stderr, "[run] ConfigSubsystem OK\n"); fflush(stderr);
     args.merge_into(*g_config);
+    fprintf(stderr, "[run] args merged, g_config->video=%d\n",
+            static_cast<int>(g_config->video));
+    fflush(stderr);
 
     s_timelog.log("tinygettext");
     init_tinygettext();
+    fprintf(stderr, "[run] tinygettext OK\n"); fflush(stderr);
 
     switch (args.get_action())
     {

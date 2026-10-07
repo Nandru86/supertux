@@ -15,7 +15,12 @@ SD
 
 Install DevKitPro with switch and arm64 support. also, install these extra libs:
 
-`switch-libogg switch-libvorbis switch-openal-soft switch-freetype switch-harfbuzz switch-curl switch-libfribidi switch-glm switch-zlib switch-physfs switch-sdl2_image`
+`switch-libogg switch-libvorbis switch-openal-soft switch-freetype switch-harfbuzz switch-curl switch-libfribidi switch-glm switch-zlib switch-physfs switch-sdl2_image switch-glad`
+
+`switch-glad` provides the OpenGL loader for the Switch, since neither GLEW nor
+libepoxy is available for this target. It is generated for a core profile, so the
+build always takes the OpenGL 3.3 core code path. To use a different loader, pass
+`-DUSE_GL_LIBRARY=<glew|libepoxy|glad>`.
 
 You also need to download, compile and install fmtlib onto devkitpro:
 
@@ -55,7 +60,7 @@ cmake .. \
   -DHIDE_NONMOBILE_OPTIONS=ON \
   -DUSE_STATIC_SIMPLESQUIRREL=ON \
   -DSQ_DISABLE_INSTALLER=ON \
-  -DENABLE_OPENGL=OFF
+  -DENABLE_OPENGL=ON
 ```
 
 Compile and build the nro:
